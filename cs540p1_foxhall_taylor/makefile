@@ -1,4 +1,4 @@
-CC := g++
+CC := clang++
 # CC := clang --analyze # and comment out the linker last line for sanity
 TARGET := deque
 DISTNAME := cs540p1_foxhall_taylor
@@ -24,8 +24,5 @@ clean:
 dist:
 	@echo " Taring source files...";
 	@echo " tar czf $(DISTNAME).tgz $(SOURCES) $(HEADERS) README makefile"; tar czf $(DISTNAME).tgz $(SOURCES) $(HEADERS) README makefile
-
-test: Deque.hpp Deque.cpp
-	$(CC) $(CFLAGS) Deque.cpp -o test
 
 .PHONY: clean
