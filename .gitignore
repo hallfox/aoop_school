@@ -28,3 +28,6 @@
 *.app
 
 *.dSYM
+GPATH
+GTAGS
+GRTAGS
