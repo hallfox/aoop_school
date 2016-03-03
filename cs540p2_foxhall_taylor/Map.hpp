@@ -136,6 +136,10 @@ namespace cs540 {
     };
     class ConstIterator: public Iterator {
     public:
+      ConstIterator(SkipNode *it) {
+        Iterator::Iterator(it);
+      }
+      ConstIterator(const ConstIterator&);
       ConstIterator& operator=(const ConstIterator&);
       const ValueType& operator*() const {
         return Iterator::operator*();
@@ -146,16 +150,19 @@ namespace cs540 {
     };
     class ReverseIterator: public Iterator {
     public:
-      Iterator& operator++() {
+      ReverseIterator(SkipNode *it) {
+        Iterator::Iterator(it);
+      }
+      ReverseIterator& operator++() {
         return Iterator::operator--();
       }
-      Iterator operator++(int) {
+      ReverseIterator operator++(int) {
         return Iterator::operator--(0);
       }
-      Iterator& operator--() {
+      ReverseIterator& operator--() {
         return Iterator::operator++();
       }
-      Iterator operator--(int) {
+      ReverseIterator operator--(int) {
         return Iterator::operator++(0);
       }
     };
@@ -253,7 +260,7 @@ namespace cs540 {
     _height(1),
     _head(new SkipNode),
     _sentinel(new SkipNode),
-    _size(init_list.size()) {
+    _size(0) {
     // Set head and sent to default values
     _init_skip_list();
     // Copy skip list
@@ -329,6 +336,11 @@ namespace cs540 {
   }
 
   template <typename Key_T, typename Mapped_T>
+  typename Map<Key_T, Mapped_T>::ConstIterator Map<Key_T, Mapped_T>::find(const Key_T& key) const {
+    return ConstIterator(find(key)._it);
+  }
+
+  template <typename Key_T, typename Mapped_T>
   Mapped_T& Map<Key_T, Mapped_T>::at(const Key_T& key) {
     auto it = find(key);
     if (it == end()) {
@@ -336,6 +348,12 @@ namespace cs540 {
     } else {
       return it->second;
     }
+  }
+
+  template <typename Key_T, typename Mapped_T>
+  const Mapped_T& Map<Key_T, Mapped_T>::at(const Key_T& key) const {
+    // This may lead to some issues (a const fn calling a non-const fn)
+    return at(key);
   }
 
   template <typename Key_T, typename Mapped_T>
@@ -406,6 +424,12 @@ namespace cs540 {
       _size++;
       return std::make_pair(Iterator(sn), true);
     }
+  }
+
+  template <typename Key_T, typename Mapped_T>
+  template <typename IT_T>
+  void Map<Key_T, Mapped_T>::insert(IT_T range_beg, IT_T range_end) {
+    
   }
 }
 
