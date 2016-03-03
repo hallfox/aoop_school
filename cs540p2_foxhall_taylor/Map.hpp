@@ -604,6 +604,7 @@ namespace cs540 {
 
     // Kill target
     delete target;
+    _size--;
 
     // TODO Maybe readjust _height if we just deleted the last of the tallest height
   }
