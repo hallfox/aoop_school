@@ -12,6 +12,17 @@ namespace cs540 {
   static const int MAX_SKIP_LIST_HEIGHT = 20; // Beware magic number
 
   template <typename Key_T, typename Mapped_T>
+  class Map;
+
+  // Get friend operators declared
+  template <typename Key_T, typename Mapped_T>
+  bool operator==(const Map<Key_T, Mapped_T>&, const Map<Key_T, Mapped_T>&);
+  template <typename Key_T, typename Mapped_T>
+  bool operator!=(const Map<Key_T, Mapped_T>&, const Map<Key_T, Mapped_T>&);
+  template <typename Key_T, typename Mapped_T>
+  bool operator<(const Map<Key_T, Mapped_T>&, const Map<Key_T, Mapped_T>&);
+
+  template <typename Key_T, typename Mapped_T>
   class Map {
   public:
     using ValueType = std::pair<const Key_T, Mapped_T>;
