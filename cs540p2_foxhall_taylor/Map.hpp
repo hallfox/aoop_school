@@ -5,6 +5,7 @@
 #include <vector>
 #include <stdexcept>
 #include <algorithm>
+#include <chrono>
 #include <random>
 
 namespace cs540 {
