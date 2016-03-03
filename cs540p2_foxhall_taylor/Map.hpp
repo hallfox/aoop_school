@@ -470,8 +470,12 @@ namespace cs540 {
 
   template <typename Key_T, typename Mapped_T>
   const Mapped_T& Map<Key_T, Mapped_T>::at(const Key_T& key) const {
-    // This may lead to some issues (a const fn calling a non-const fn)
-    return at(key);
+    auto it = find(key);
+    if (it == end()) {
+      throw std::out_of_range("Key not found");
+    } else {
+      return it->second;
+    }
   }
 
   template <typename Key_T, typename Mapped_T>
