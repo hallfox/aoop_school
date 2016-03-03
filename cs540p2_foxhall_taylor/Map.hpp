@@ -2,7 +2,6 @@
 #define _MAP_H_
 
 #include <utility>
-#include <memory>
 #include <vector>
 #include <stdexcept>
 #include <algorithm>
@@ -62,12 +61,15 @@ namespace cs540 {
   private:
     // Skip list internals here
     struct SkipNode {
-      SkipNode(): back(this) {}
-      SkipNode(const ValueType& d): back(this), data(d) {}
+      SkipNode() = default;
+      SkipNode(const SkipNode&) = default;
+      SkipNode& operator=(const SkipNode&) = default;
       ~SkipNode() {
         next = std::vector<SkipNode *>{};
         back = nullptr;
       }
+
+      SkipNode(const ValueType& d): data(d) {}
 
       std::vector<SkipNode *> next;
       SkipNode *back;
@@ -77,7 +79,6 @@ namespace cs540 {
         int seed = std::chrono::system_clock::now().time_since_epoch().count();
         std::default_random_engine gen(seed);
         std::geometric_distribution<int> dist(0.5);
-        // while (dist(gen) && h < MAX_SKIP_LIST_HEIGHT) h++;
 
         return std::min(dist(gen)+1, MAX_SKIP_LIST_HEIGHT);
       }
@@ -94,14 +95,16 @@ namespace cs540 {
 
     size_t _size;
 
-  public:
+  private:
     // Iterators
     class BaseIterator {
     public:
+      BaseIterator() = delete;
       BaseIterator(SkipNode *it): _it(it) {}
-      BaseIterator(const BaseIterator&);
-      virtual ~BaseIterator();
-      BaseIterator& operator=(const BaseIterator&);
+      BaseIterator(const BaseIterator&) = default;
+      BaseIterator& operator=(const BaseIterator&) = default;
+      virtual ~BaseIterator() = default;
+
       virtual ValueType& operator*() const {
         return _it->data;
       }
@@ -117,9 +120,15 @@ namespace cs540 {
     protected:
       SkipNode *_it;
     };
+  public:
     class Iterator: public BaseIterator {
     public:
+      Iterator() = delete;
       Iterator(SkipNode *it): BaseIterator(it) {}
+      Iterator(const Iterator&) = default;
+      Iterator& operator=(const Iterator&) = default;
+      ~Iterator() = default;
+
       Iterator& operator++() {
         BaseIterator::_it = BaseIterator::_it->next[0];
         return *this;
@@ -141,7 +150,12 @@ namespace cs540 {
     };
     class ReverseIterator: public BaseIterator {
     public:
+      ReverseIterator() = delete;
       ReverseIterator(SkipNode *it): BaseIterator(it) {}
+      ReverseIterator(const ReverseIterator&) = default;
+      ReverseIterator& operator=(const ReverseIterator&) = default;
+      ~ReverseIterator() = default;
+
       ReverseIterator& operator++() {
         BaseIterator::_it = BaseIterator::_it->back;
         return *this;
@@ -163,9 +177,12 @@ namespace cs540 {
     };
     class ConstIterator {
     public:
+      ConstIterator() = delete;
       ConstIterator(const SkipNode *it): _it(it) {}
-      ConstIterator(const ConstIterator&);
-      ~ConstIterator();
+      ConstIterator(const ConstIterator&) = default;
+      ConstIterator& operator=(const ConstIterator&) = default;
+      ~ConstIterator() = default;
+
       ConstIterator& operator++() {
         _it = _it->next[0];
         return *this;
@@ -593,8 +610,5 @@ namespace cs540 {
   }
 
 }
-
-// Purely for debugging purposes, don't leave this here
-// template class cs540::Map<std::string, std::string>;
 
 #endif /* _MAP_H_ */

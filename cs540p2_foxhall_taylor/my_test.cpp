@@ -3,6 +3,16 @@
 #include <iostream>
 #include <random>
 
+class A {
+public:
+  A() = default;
+  A(int xx): x(xx) {}
+  friend bool operator==(const A& me, const A& other) { return me.x == other.x; }
+  friend bool operator==(const A& me, const A& other) { return me.x == other.x; }
+private:
+  int x;
+};
+
 template class cs540::Map<std::string, std::string>;
 
 static const int MAX_SKIP_LIST_HEIGHT = 20;
