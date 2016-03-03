@@ -522,19 +522,26 @@ namespace cs540 {
       // values appropriately
       SkipNode *sn = new SkipNode(val);
       int sn_height = SkipNode::rand_height();
-
-      if (sn_height > _height) {
-        _height = sn_height;
-      }
-
       sn->next = std::vector<SkipNode *>(sn_height, _sentinel);
+
+      int copy_height = sn_height;
+      if (sn_height > _height) {
+        // Adjust height
+        copy_height = _height;
+        _height = sn_height;
+
+        // Make head point to the newest tallest lane
+        for (int i = copy_height; i < sn_height; i++) {
+          _head->next[i] = sn;
+        }
+      }
 
       // Set back pointers
       path[0]->next[0]->back = sn;
       sn->back = path[0];
 
       // Set next pointers
-      for (int i = 0; i < sn_height; i++) {
+      for (int i = 0; i < copy_height; i++) {
         sn->next[i] = path[i]->next[i];
         path[i]->next[i] = sn;
       }
