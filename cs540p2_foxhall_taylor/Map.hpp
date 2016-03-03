@@ -299,7 +299,7 @@ namespace cs540 {
       sn->back = it;
       // Insert him into the skip list, after it but also setting last->next appropriately
       for (size_t j = 0; j < sn->next.size(); j++) {
-        lasts[j]->next[i] = sn;
+        lasts[j]->next[j] = sn;
         lasts[j] = sn;
       }
 
