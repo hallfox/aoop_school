@@ -12,17 +12,6 @@ namespace cs540 {
   static const int MAX_SKIP_LIST_HEIGHT = 20; // Beware magic number
 
   template <typename Key_T, typename Mapped_T>
-  class Map;
-
-  // Get friend operators declared
-  template <typename Key_T, typename Mapped_T>
-  bool operator==(const Map<Key_T, Mapped_T>&, const Map<Key_T, Mapped_T>&);
-  template <typename Key_T, typename Mapped_T>
-  bool operator!=(const Map<Key_T, Mapped_T>&, const Map<Key_T, Mapped_T>&);
-  template <typename Key_T, typename Mapped_T>
-  bool operator<(const Map<Key_T, Mapped_T>&, const Map<Key_T, Mapped_T>&);
-
-  template <typename Key_T, typename Mapped_T>
   class Map {
   public:
     using ValueType = std::pair<const Key_T, Mapped_T>;
@@ -66,9 +55,41 @@ namespace cs540 {
     void clear();
 
     // Comparison
-    friend bool operator==(const Map&, const Map&);
-    friend bool operator!=(const Map&, const Map&);
-    friend bool operator<(const Map&, const Map&);
+    friend bool operator==(const Map& map1, const Map& map2) {
+      if (map1.size() != map2.size()) return false;
+
+      auto it1 = map1.begin();
+      auto it2 = map2.begin();
+
+      // Good thing Skip Lists are ordered otherwise this wouldn't work
+      while (it1 != map1.end() && it2 != map2.end() && *it1 == *it2) {
+        it1++; it2++;
+      }
+
+      return true;
+    }
+
+    friend bool operator!=(const Map& map1, const Map& map2) {
+      return !(map1 == map2);
+    }
+
+    friend bool operator<(const Map& map1, const Map& map2){
+      auto it1 = map1.begin();
+      auto it2 = map2.begin();
+
+      // Good thing Skip Lists are ordered otherwise this wouldn't work as fast
+      // Although I guess in BSTs one could just do an inorder traversal
+      // Yeah that'd be cool
+      // I think if I used a RB tree this would be the exact same code
+      while (it1 != map1.end() && it2 != map2.end()) {
+        if (*it1 < *it2) {
+          return true;
+        }
+        it1++; it2++;
+      }
+
+      return map1.size() < map2.size();
+    }
 
   private:
     // Skip list internals here
@@ -586,44 +607,6 @@ namespace cs540 {
     *this = Map<Key_T, Mapped_T>();
   }
 
-  template <typename Key_T, typename Mapped_T>
-  bool operator==(const Map<Key_T, Mapped_T>& map1, const Map<Key_T, Mapped_T>& map2) {
-    if (map1.size() != map2.size()) return false;
-
-    auto it1 = map1.begin();
-    auto it2 = map2.begin();
-
-    // Good thing Skip Lists are ordered otherwise this wouldn't work
-    while (it1 != map1.end() && it2 != map2.end() && *it1 == *it2) {
-      it1++; it2++;
-    }
-
-    return true;
-  }
-
-  template <typename Key_T, typename Mapped_T>
-  inline bool operator!=(const Map<Key_T, Mapped_T>& map1, const Map<Key_T, Mapped_T>& map2) {
-    return !(map1 == map2);
-  }
-
-  template <typename Key_T, typename Mapped_T>
-  bool operator<(const Map<Key_T, Mapped_T>& map1, const Map<Key_T, Mapped_T>& map2) {
-    auto it1 = map1.begin();
-    auto it2 = map2.begin();
-
-    // Good thing Skip Lists are ordered otherwise this wouldn't work as fast
-    // Although I guess in BSTs one could just do an inorder traversal
-    // Yeah that'd be cool
-    // I think if I used a RB tree this would be the exact same code
-    while (it1 != map1.end() && it2 != map2.end()) {
-      if (*it1 < *it2) {
-        return true;
-      }
-      it1++; it2++;
-    }
-
-    return map1.size() < map2.size();
-  }
 
 }
 
