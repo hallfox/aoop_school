@@ -63,20 +63,22 @@ namespace cs540 {
     // Skip list internals here
     struct SkipNode {
       // Can't assume we have these since we can't assume Mapped and Key have them
-      SkipNode() {}
       SkipNode& operator=(const SkipNode&) = delete;
 
-      SkipNode(const SkipNode&) = default;
+      SkipNode(): back(this), data(nullptr) {}
+      // I don't want to be able to copy construct a node
+      SkipNode(const SkipNode& other) = delete;
       ~SkipNode() {
         next = std::vector<SkipNode *>{};
         back = nullptr;
+        delete data;
       }
 
-      SkipNode(const ValueType& d): data(d) {}
+      SkipNode(const ValueType& d): data(new ValueType(d)) {}
 
       std::vector<SkipNode *> next;
       SkipNode *back;
-      ValueType data;
+      ValueType *data;
 
       static int rand_height() {
         int seed = std::chrono::system_clock::now().time_since_epoch().count();
@@ -109,10 +111,10 @@ namespace cs540 {
       virtual ~BaseIterator() = default;
 
       virtual ValueType& operator*() const {
-        return _it->data;
+        return *(_it->data);
       }
       virtual ValueType *operator->() const {
-        return &(_it->data);
+        return _it->data;
       }
       friend bool operator==(const BaseIterator& i1, const BaseIterator& i2) {
         return i1._it == i2._it;
@@ -205,10 +207,10 @@ namespace cs540 {
         return t;
       }
       const ValueType& operator*() const {
-        return _it->data;
+        return *(_it->data);
       }
       const ValueType *operator->() const {
-        return &(_it->data);
+        return &(*(_it->data));
       }
       friend bool operator==(const ConstIterator& i1, const ConstIterator& i2) {
         return i1._it == i2._it;
@@ -260,7 +262,7 @@ namespace cs540 {
     for (size_t i = 0; i < _size; i++) {
       // Create a new skip node based off of the next guy
       SkipNode *mimic_sn = other_it->next[0];
-      SkipNode *sn = new SkipNode(mimic_sn->data);
+      SkipNode *sn = new SkipNode(*(mimic_sn->data));
       sn->next = std::vector<SkipNode *>(mimic_sn->next.size(), _sentinel);
       sn->back = it;
       // Insert him into the skip list, after it but also setting last->next appropriately
@@ -390,12 +392,12 @@ namespace cs540 {
     int level;
     SkipNode *it = _head;
     for (level = _height - 1; level >= 0; level--) {
-      while (it->next[level] != _sentinel && it->next[level]->data.first < key) {
+      while (it->next[level] != _sentinel && it->next[level]->data->first < key) {
         it = it->next[level];
       }
     }
 
-    if (it->next[0]->data.first == key) {
+    if (it->next[0]->data->first == key) {
       return Iterator(it->next[0]);
     }
 
@@ -412,12 +414,12 @@ namespace cs540 {
     int level;
     SkipNode *it = _head;
     for (level = _height - 1; level >= 0; level--) {
-      while (it->next[level] != _sentinel && it->next[level]->data.first < key) {
+      while (it->next[level] != _sentinel && it->next[level]->data->first < key) {
         it = it->next[level];
       }
     }
 
-    if (it->next[0]->data.first == key) {
+    if (it->next[0]->data->first == key) {
       return ConstIterator(it->next[0]);
     }
 
@@ -473,13 +475,13 @@ namespace cs540 {
     SkipNode *it = _head;
     std::vector<SkipNode *> path(_height, _sentinel);
     for (level = _height - 1; level >= 0; level--) {
-      while (it->next[level] != _sentinel && it->next[level]->data.first < val.first) {
+      while (it->next[level] != _sentinel && it->next[level]->data->first < val.first) {
         it = it->next[level];
       }
       path[level] = it;
     }
 
-    if (it->next[0]->data.first == val.first) {
+    if (it->next[0]->data->first == val.first) {
       return std::make_pair(Iterator(it->next[0]), false);
     } else {
       // Get a height for the new entry
@@ -541,14 +543,14 @@ namespace cs540 {
     SkipNode *it = _head;
     std::vector<SkipNode *> path(_height, _sentinel);
     for (level = _height - 1; level >= 0; level--) {
-      while (it->next[level] != _sentinel && it->next[level]->data.first < key) {
+      while (it->next[level] != _sentinel && it->next[level]->data->first < key) {
         it = it->next[level];
       }
       path[level] = it;
     }
 
     SkipNode *target = it->next[0];
-    if (target == _sentinel || !(target->data.first == key)) {
+    if (target == _sentinel || !(target->data->first == key)) {
       throw std::out_of_range("Key not found");
     }
 
@@ -614,6 +616,6 @@ namespace cs540 {
 
 }
 
-// template class cs540::Map<std::string, std::string>;
+template class cs540::Map<std::string, std::string>;
 
 #endif /* _MAP_H_ */
