@@ -96,71 +96,120 @@ namespace cs540 {
 
   public:
     // Iterators
-    class Iterator {
+    class BaseIterator {
     public:
-      Iterator(SkipNode *it): _it(it) {}
-      Iterator(const Iterator&);
-      virtual ~Iterator();
-      Iterator& operator=(const Iterator&);
-      virtual Iterator& operator++() {
-        _it = _it->next[0];
-        return *this;
-      }
-      virtual Iterator operator++(int) {
-        Iterator t(*this);
-        ++(*this);
-        return t;
-      }
-      virtual Iterator& operator--() {
-        _it = _it->back;
-      }
-      virtual Iterator operator--(int) {
-        Iterator t(*this);
-        --(*this);
-        return t;
-      }
+      BaseIterator(SkipNode *it): _it(it) {}
+      BaseIterator(const BaseIterator&);
+      virtual ~BaseIterator();
+      BaseIterator& operator=(const BaseIterator&);
       virtual ValueType& operator*() const {
         return _it->data;
       }
       virtual ValueType *operator->() const {
         return &(_it->data);
       }
-      friend bool operator==(const Iterator& i1, const Iterator& i2) {
+      friend bool operator==(const BaseIterator& i1, const BaseIterator& i2) {
         return i1._it == i2._it;
       }
-      friend bool operator!=(const Iterator& i1, const Iterator& i2) {
+      friend bool operator!=(const BaseIterator& i1, const BaseIterator& i2) {
+        return !(i1 == i2);
+      }
+    protected:
+      SkipNode *_it;
+    };
+    class Iterator: public BaseIterator {
+    public:
+      Iterator(SkipNode *it): BaseIterator(it) {}
+      Iterator& operator++() {
+        BaseIterator::_it = BaseIterator::_it->next[0];
+        return *this;
+      }
+      Iterator operator++(int) {
+        Iterator t(*this);
+        ++(*this);
+        return t;
+      }
+      Iterator& operator--() {
+        BaseIterator::_it = BaseIterator::_it->back;
+        return *this;
+      }
+      Iterator operator--(int) {
+        Iterator t(*this);
+        --(*this);
+        return t;
+      }
+    };
+    class ReverseIterator: public BaseIterator {
+    public:
+      ReverseIterator(SkipNode *it): BaseIterator(it) {}
+      ReverseIterator& operator++() {
+        BaseIterator::_it = BaseIterator::_it->back;
+        return *this;
+      }
+      ReverseIterator operator++(int) {
+        ReverseIterator t(*this);
+        ++(*this);
+        return t;
+      }
+      ReverseIterator& operator--() {
+        BaseIterator::_it = BaseIterator::_it->next[0];
+        return *this;
+      }
+      ReverseIterator operator--(int) {
+        ReverseIterator t(*this);
+        --(*this);
+        return t;
+      }
+    };
+    class ConstIterator {
+    public:
+      ConstIterator(const SkipNode *it): _it(it) {}
+      ConstIterator(const ConstIterator&);
+      ~ConstIterator();
+      ConstIterator& operator++() {
+        _it = _it->next[0];
+        return *this;
+      }
+      ConstIterator operator++(int) {
+        ConstIterator t(*this);
+        ++(*this);
+        return t;
+      }
+      ConstIterator& operator--() {
+        _it = _it->back;
+        return *this;
+      }
+      ConstIterator operator--(int) {
+        ConstIterator t(*this);
+        --(*this);
+        return t;
+      }
+      const ValueType& operator*() const {
+        return _it->data;
+      }
+      const ValueType *operator->() const {
+        return &(_it->data);
+      }
+      friend bool operator==(const ConstIterator& i1, const ConstIterator& i2) {
+        return i1._it == i2._it;
+      }
+      friend bool operator!=(const ConstIterator& i1, const ConstIterator& i2) {
+        return !(i1 == i2);
+      }
+      friend bool operator==(const BaseIterator& i1, const ConstIterator& i2) {
+        return i1._it == i2._it;
+      }
+      friend bool operator!=(const BaseIterator& i1, const ConstIterator& i2) {
+        return !(i1 == i2);
+      }
+      friend bool operator==(const ConstIterator& i1, const BaseIterator& i2)  {
+        return i2 == i1;
+      }
+      friend bool operator!=(const ConstIterator& i1, const BaseIterator& i2) {
         return !(i1 == i2);
       }
     private:
-      SkipNode *_it;
-    };
-    class ConstIterator: public Iterator {
-    public:
-      ConstIterator(SkipNode *it): Iterator(it) {}
-      ConstIterator(const ConstIterator&);
-      ConstIterator& operator=(const ConstIterator&);
-      const ValueType& operator*() const {
-        return Iterator::operator*();
-      }
-      const ValueType *operator->() const {
-        return Iterator::operator->();
-      }
-    };
-    class ReverseIterator: public Iterator {
-    public:
-      ReverseIterator(SkipNode *it): Iterator(it) {}
-      ReverseIterator& operator++() {
-        return Iterator::operator--();
-      }
-      ReverseIterator operator++(int) {
-        return Iterator::operator--(0);
-      }
-      ReverseIterator& operator--() {
-        return Iterator::operator++();
-      }
-      ReverseIterator operator--(int) {
-        return Iterator::operator++(0);
-      }
+      const SkipNode *_it;
     };
   };
 
@@ -329,11 +378,30 @@ namespace cs540 {
     if (it->next[0]->data.first == key) {
       return Iterator(it->next[0]);
     }
+
+    return end();
   }
 
   template <typename Key_T, typename Mapped_T>
   typename Map<Key_T, Mapped_T>::ConstIterator Map<Key_T, Mapped_T>::find(const Key_T& key) const {
-    return ConstIterator(find(key)._it);
+    // TODO Literally an exact copy of above, should find some way to make this better
+    if (empty()) {
+      return end();
+    }
+
+    int level;
+    SkipNode *it = _head;
+    for (level = _height - 1; level >= 0; level--) {
+      while (it->next[level] != _sentinel && it->next[level]->data.first < key) {
+        it = it->next[level];
+      }
+    }
+
+    if (it->next[0]->data.first == key) {
+      return ConstIterator(it->next[0]);
+    }
+
+    return end();
   }
 
   template <typename Key_T, typename Mapped_T>
@@ -527,6 +595,6 @@ namespace cs540 {
 }
 
 // Purely for debugging purposes, don't leave this here
-template class cs540::Map<std::string, std::string>;
+// template class cs540::Map<std::string, std::string>;
 
 #endif /* _MAP_H_ */
