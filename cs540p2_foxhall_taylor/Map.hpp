@@ -119,10 +119,10 @@ namespace cs540 {
         --(*this);
         return t;
       }
-      virtual ValueType& operator*() const {
+      ValueType& operator*() const {
         return _it->data;
       }
-      virtual ValueType *operator->() const {
+      ValueType *operator->() const {
         return &(_it->data);
       }
       friend bool operator==(const Iterator& i1, const Iterator& i2) {
@@ -429,8 +429,66 @@ namespace cs540 {
   template <typename Key_T, typename Mapped_T>
   template <typename IT_T>
   void Map<Key_T, Mapped_T>::insert(IT_T range_beg, IT_T range_end) {
-    
+    for (auto it = range_beg; it != range_end; it++) {
+      insert(*it);
+    }
   }
+
+  template <typename Key_T, typename Mapped_T>
+  void Map<Key_T, Mapped_T>::erase(Iterator pos) {
+    // What if if pos == end?
+    if (pos == end()) {
+      // Eh, stop it I guess?
+      return;
+    }
+
+    // lazy af
+    // this could probably be an O(1) op if only every Node had every back pointer
+    erase(pos->first);
+  }
+
+  template <typename Key_T, typename Mapped_T>
+  void Map<Key_T, Mapped_T>::erase(const Key_T& key) {
+    // This operation could use find() if SkipNodes had matching back pointers
+    // But we really need the path vector
+    // Also pray that find actually works or I'm going to have to fix every instance
+    // of it that I copied into insert and erase
+    int level;
+    SkipNode *it = _head;
+    std::vector<SkipNode *> path(_height, _sentinel);
+    for (level = _height - 1; level >= 0; level--) {
+      while (it->next != _sentinel && it->next[level].data.first < key) {
+        it = it->next;
+      }
+      path[level] = it;
+    }
+
+    SkipNode *target = it->next[0];
+    if (target == _sentinel || !(target->data.first == key)) {
+      throw std::out_of_range("Key not found");
+    }
+
+    // Adjust target's next back pointer
+    target->next[0]->back = it;
+
+    // Forward the prev's nexts to target's nexts
+    int target_height = target->next.size();
+    for (int i = 0; i < target_height; i++) {
+      path[i]->next[i] = target->next[i];
+    }
+
+    // Kill target
+    delete target;
+
+    // TODO Maybe readjust _height if we just deleted the last of the tallest height
+  }
+
+  template <typename Key_T, typename Mapped_T>
+  void Map<Key_T, Mapped_T>::clear() {
+    // Assuming operator= works this should be fine
+    *this = Map<Key_T, Mapped_T>();
+  }
+
 }
 
 
