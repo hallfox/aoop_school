@@ -61,9 +61,11 @@ namespace cs540 {
   private:
     // Skip list internals here
     struct SkipNode {
-      SkipNode() = default;
+      // Can't assume we have these since we can't assume Mapped and Key have them
+      SkipNode();
+      SkipNode& operator=(const SkipNode&) = delete;
+
       SkipNode(const SkipNode&) = default;
-      SkipNode& operator=(const SkipNode&) = default;
       ~SkipNode() {
         next = std::vector<SkipNode *>{};
         back = nullptr;
@@ -610,5 +612,7 @@ namespace cs540 {
   }
 
 }
+
+// template class cs540::Map<std::string, std::string>;
 
 #endif /* _MAP_H_ */
