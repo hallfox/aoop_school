@@ -6,10 +6,10 @@
 #include <vector>
 #include <stdexcept>
 #include <algorithm>
-#include <stdlib.h>
+#include <random>
 
 namespace cs540 {
-  static const unsigned MAX_SKIP_LIST_HEIGHT = sizeof(unsigned) * 8 - 1;
+  static const int MAX_SKIP_LIST_HEIGHT = 20; // Beware magic number
 
   template <typename Key_T, typename Mapped_T>
   class Map {
@@ -65,9 +65,6 @@ namespace cs540 {
       SkipNode(): back(this) {}
       SkipNode(const ValueType& d): back(this), data(d) {}
       ~SkipNode() {
-        if (next[0] != this) {
-          delete next[0];
-        }
         next = std::vector<SkipNode *>{};
         back = nullptr;
       }
@@ -77,16 +74,19 @@ namespace cs540 {
       ValueType data;
 
       static int rand_height() {
-        unsigned random = rand();
-        int h = 1;
-        for (unsigned i = 0; i < MAX_SKIP_LIST_HEIGHT; i++) {
-          if ((random >> i) & 1) {
-            h++;
-          }
-        }
-        return h;
+        int seed = std::chrono::system_clock::now().time_since_epoch().count();
+        std::default_random_engine gen(seed);
+        std::geometric_distribution<int> dist(0.5);
+        // while (dist(gen) && h < MAX_SKIP_LIST_HEIGHT) h++;
+
+        return std::min(dist(gen)+1, MAX_SKIP_LIST_HEIGHT);
       }
     };
+
+    // Some helper functions because I don't have a real SkipList class
+    void _init_skip_list();
+    void _delete_skip_list();
+    void _copy_skip_list(const SkipNode *);
 
     int _height;
     SkipNode *_head;
@@ -162,34 +162,28 @@ namespace cs540 {
   };
 
   template <typename Key_T, typename Mapped_T>
-  Map<Key_T, Mapped_T>::Map():
-    _height(1),
-    _head(new SkipNode),
-    _sentinel(new SkipNode),
-    _size(0) {
-    // This guy will change depending on the height and whatnot
+  void Map<Key_T, Mapped_T>::_init_skip_list() {
     _head->next = std::vector<SkipNode *>(MAX_SKIP_LIST_HEIGHT, _sentinel);
     _head->back = _head;
-    // This will never change
     _sentinel->next = std::vector<SkipNode *>(MAX_SKIP_LIST_HEIGHT, _sentinel);
     _sentinel->back = _head;
- }
+  }
 
   template <typename Key_T, typename Mapped_T>
-  Map<Key_T, Mapped_T>::Map(const Map<Key_T, Mapped_T>& map):
-    _height(map._height),
-    _head(new SkipNode),
-    _sentinel(new SkipNode),
-    _size(map._size) {
-
-    _head->next = std::vector<SkipNode *>(MAX_SKIP_LIST_HEIGHT, _sentinel);
-    _head->back = _head;
-    _sentinel->next = std::vector<SkipNode *>(MAX_SKIP_LIST_HEIGHT, _sentinel);
-    _sentinel->back = _head;
-
-    // TODO Copy skip list
+  void Map<Key_T, Mapped_T>::_delete_skip_list() {
     SkipNode *it = _head;
-    SkipNode *other_it = map._head;
+    while (it != _sentinel) {
+      SkipNode *t = it->next[0];
+      delete it;
+      it = t;
+    }
+    delete _sentinel;
+  }
+
+  template <typename Key_T, typename Mapped_T>
+  void Map<Key_T, Mapped_T>::_copy_skip_list(const SkipNode *other) {
+    SkipNode *it = _head;
+    const SkipNode *other_it = other;
     std::vector<SkipNode *> lasts(_height, _head);
     for (int i = 0; i < _size; i++) {
       // Create a new skip node based off of the next guy
@@ -211,23 +205,66 @@ namespace cs540 {
   }
 
   template <typename Key_T, typename Mapped_T>
+  Map<Key_T, Mapped_T>::Map():
+    _height(1),
+    _head(new SkipNode),
+    _sentinel(new SkipNode),
+    _size(0) {
+    // Set head and sent to default values
+    _init_skip_list();
+  }
+
+  template <typename Key_T, typename Mapped_T>
+  Map<Key_T, Mapped_T>::Map(const Map<Key_T, Mapped_T>& map):
+    _height(map._height),
+    _head(new SkipNode),
+    _sentinel(new SkipNode),
+    _size(map._size) {
+    // Set head and sent to default values
+    _init_skip_list();
+    // Copy skip list
+    _copy_skip_list(map._head);
+  }
+
+  template <typename Key_T, typename Mapped_T>
   Map<Key_T, Mapped_T>& Map<Key_T, Mapped_T>::operator=(const Map& map) {
     if (&map == this) {
       return *this;
     }
 
-    delete _head;
+    // Get rid of what's already here
+    _delete_skip_list();
 
+    // Reinitialize
     _height = map._height;
     _head = new SkipNode;
     _sentinel = new SkipNode;
+    _size = map._size;
 
-    // TODO Copy skip list
+    // Basically do what copy constructor do
+    _init_skip_list();
+    _copy_skip_list(map._head);
+
+    return *this;
+  }
+
+  template <typename Key_T, typename Mapped_T>
+  Map<Key_T, Mapped_T>::Map(std::initializer_list<ValueType> init_list):
+    _height(1),
+    _head(new SkipNode),
+    _sentinel(new SkipNode),
+    _size(init_list.size()) {
+    // Set head and sent to default values
+    _init_skip_list();
+    // Copy skip list
+    for (auto& v: init_list) {
+      insert(*v);
+    }
   }
 
   template <typename Key_T, typename Mapped_T>
   Map<Key_T, Mapped_T>::~Map() {
-    delete _head;
+    _delete_skip_list(_head);
     _head = nullptr;
     _sentinel = nullptr;
   }
@@ -240,6 +277,36 @@ namespace cs540 {
   template <typename Key_T, typename Mapped_T>
   bool Map<Key_T, Mapped_T>::empty() const {
     return _size == 0;
+  }
+
+  template <typename Key_T, typename Mapped_T>
+  typename Map<Key_T, Mapped_T>::Iterator Map<Key_T, Mapped_T>::begin() {
+    return Iterator(_head->next[0]);
+  }
+
+  template <typename Key_T, typename Mapped_T>
+  typename Map<Key_T, Mapped_T>::Iterator Map<Key_T, Mapped_T>::end() {
+    return Iterator(_sentinel);
+  }
+
+  template <typename Key_T, typename Mapped_T>
+  typename Map<Key_T, Mapped_T>::ConstIterator Map<Key_T, Mapped_T>::begin() const {
+    return ConstIterator(_head->next[0]);
+  }
+
+  template <typename Key_T, typename Mapped_T>
+  typename Map<Key_T, Mapped_T>::ConstIterator Map<Key_T, Mapped_T>::end() const {
+    return ConstIterator(_sentinel);
+  }
+
+  template <typename Key_T, typename Mapped_T>
+  typename Map<Key_T, Mapped_T>::ReverseIterator Map<Key_T, Mapped_T>::rbegin() {
+    return ReverseIterator(_sentinel->back);
+  }
+
+  template <typename Key_T, typename Mapped_T>
+  typename Map<Key_T, Mapped_T>::ReverseIterator Map<Key_T, Mapped_T>::rend() {
+    return ReverseIterator(_head);
   }
 
   template <typename Key_T, typename Mapped_T>
@@ -311,7 +378,7 @@ namespace cs540 {
     }
 
     if (it->next[0].data.first == val.first) {
-      return std::make_pair(Iterator(it->next), false);
+      return std::make_pair(Iterator(it->next[0]), false);
     } else {
       // Get a height for the new entry
       // Make a new skip node and set the appropriate nexts
