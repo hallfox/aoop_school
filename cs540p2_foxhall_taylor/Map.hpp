@@ -513,7 +513,7 @@ namespace cs540 {
       path[level] = it;
     }
 
-    if (it->next[0]->data->first == val.first) {
+    if (it->next[0] != _sentinel && it->next[0]->data->first == val.first) {
       return std::make_pair(Iterator(it->next[0]), false);
     } else {
       // Get a height for the new entry
