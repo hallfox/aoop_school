@@ -1,3 +1,5 @@
+// #include "Map.hpp"
+
 #include <iostream>
 #include <random>
 
@@ -14,8 +16,7 @@ int rand_height() {
   return std::min(dist(gen)+1, MAX_SKIP_LIST_HEIGHT);
 }
 
-int main() {
-  srand(time(NULL));
+void test_rand_height() {
   std::cout << "Max skip list height is: " << MAX_SKIP_LIST_HEIGHT << std::endl;
   std::cout << "Here are some random heights (geometric distribution p = 1/2):\n";
 
@@ -24,6 +25,26 @@ int main() {
     std::cout << std::string(rand_height(), '*') << std::endl;
   }
   std::cout << std::string(MAX_SKIP_LIST_HEIGHT, '-') << std::endl;
+}
 
+class A {
+public:
+  A(int a): x(a) {}
+  virtual int& get_x() {
+    return x;
+  }
+
+protected:
+  int x;
+};
+
+class B: public A {
+  B(int a): A(a) {}
+  const int& get_x() {
+    return A::x;
+  }
+};
+
+int main() {
   return 0;
 }

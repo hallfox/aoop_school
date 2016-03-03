@@ -119,10 +119,10 @@ namespace cs540 {
         --(*this);
         return t;
       }
-      ValueType& operator*() const {
+      virtual ValueType& operator*() const {
         return _it->data;
       }
-      ValueType *operator->() const {
+      virtual ValueType *operator->() const {
         return &(_it->data);
       }
       friend bool operator==(const Iterator& i1, const Iterator& i2) {
@@ -136,9 +136,7 @@ namespace cs540 {
     };
     class ConstIterator: public Iterator {
     public:
-      ConstIterator(SkipNode *it) {
-        Iterator::Iterator(it);
-      }
+      ConstIterator(SkipNode *it): Iterator(it) {}
       ConstIterator(const ConstIterator&);
       ConstIterator& operator=(const ConstIterator&);
       const ValueType& operator*() const {
@@ -150,9 +148,7 @@ namespace cs540 {
     };
     class ReverseIterator: public Iterator {
     public:
-      ReverseIterator(SkipNode *it) {
-        Iterator::Iterator(it);
-      }
+      ReverseIterator(SkipNode *it): Iterator(it) {}
       ReverseIterator& operator++() {
         return Iterator::operator--();
       }
@@ -192,14 +188,14 @@ namespace cs540 {
     SkipNode *it = _head;
     const SkipNode *other_it = other;
     std::vector<SkipNode *> lasts(_height, _head);
-    for (int i = 0; i < _size; i++) {
+    for (size_t i = 0; i < _size; i++) {
       // Create a new skip node based off of the next guy
       SkipNode *mimic_sn = other_it->next[0];
       SkipNode *sn = new SkipNode(mimic_sn->data);
       sn->next = std::vector<SkipNode *>(mimic_sn->next.size(), _sentinel);
       sn->back = it;
       // Insert him into the skip list, after it but also setting last->next appropriately
-      for (int j = 0; j < sn->next.size(); j++) {
+      for (size_t j = 0; j < sn->next.size(); j++) {
         lasts[j]->next[i] = sn;
         lasts[j] = sn;
       }
@@ -265,13 +261,13 @@ namespace cs540 {
     _init_skip_list();
     // Copy skip list
     for (auto& v: init_list) {
-      insert(*v);
+      insert(v);
     }
   }
 
   template <typename Key_T, typename Mapped_T>
   Map<Key_T, Mapped_T>::~Map() {
-    _delete_skip_list(_head);
+    _delete_skip_list();
     _head = nullptr;
     _sentinel = nullptr;
   }
@@ -325,13 +321,13 @@ namespace cs540 {
     int level;
     SkipNode *it = _head;
     for (level = _height - 1; level >= 0; level--) {
-      while (it->next != _sentinel && it->next[level].data.first < key) {
-        it = it->next;
+      while (it->next[level] != _sentinel && it->next[level]->data.first < key) {
+        it = it->next[level];
       }
     }
 
-    if (it->next[0].data.first == key) {
-      return Iterator(it->next);
+    if (it->next[0]->data.first == key) {
+      return Iterator(it->next[0]);
     }
   }
 
@@ -358,7 +354,7 @@ namespace cs540 {
 
   template <typename Key_T, typename Mapped_T>
   Mapped_T& Map<Key_T, Mapped_T>::operator[](const Key_T& key) {
-    auto res = insert(key, Mapped_T());
+    auto res = insert(std::make_pair(key, Mapped_T()));
     return res.first->second;
   }
 
@@ -389,13 +385,13 @@ namespace cs540 {
     SkipNode *it = _head;
     std::vector<SkipNode *> path(_height, _sentinel);
     for (level = _height - 1; level >= 0; level--) {
-      while (it->next != _sentinel && it->next[level].data.first < val.first) {
-        it = it->next;
+      while (it->next[level] != _sentinel && it->next[level]->data.first < val.first) {
+        it = it->next[level];
       }
       path[level] = it;
     }
 
-    if (it->next[0].data.first == val.first) {
+    if (it->next[0]->data.first == val.first) {
       return std::make_pair(Iterator(it->next[0]), false);
     } else {
       // Get a height for the new entry
@@ -412,7 +408,7 @@ namespace cs540 {
       sn->next = std::vector<SkipNode *>(sn_height, _sentinel);
 
       // Set back pointers
-      path[0]->next->back = sn;
+      path[0]->next[0]->back = sn;
       sn->back = path[0];
 
       // Set next pointers
@@ -457,8 +453,8 @@ namespace cs540 {
     SkipNode *it = _head;
     std::vector<SkipNode *> path(_height, _sentinel);
     for (level = _height - 1; level >= 0; level--) {
-      while (it->next != _sentinel && it->next[level].data.first < key) {
-        it = it->next;
+      while (it->next[level] != _sentinel && it->next[level]->data.first < key) {
+        it = it->next[level];
       }
       path[level] = it;
     }
@@ -489,7 +485,48 @@ namespace cs540 {
     *this = Map<Key_T, Mapped_T>();
   }
 
+  template <typename Key_T, typename Mapped_T>
+  bool operator==(const Map<Key_T, Mapped_T>& map1, const Map<Key_T, Mapped_T>& map2) {
+    if (map1.size() != map2.size()) return false;
+
+    auto it1 = map1.begin();
+    auto it2 = map2.begin();
+
+    // Good thing Skip Lists are ordered otherwise this wouldn't work
+    while (it1 != map1.end() && it2 != map2.end() && *it1 == *it2) {
+      it1++; it2++;
+    }
+
+    return true;
+  }
+
+  template <typename Key_T, typename Mapped_T>
+  inline bool operator!=(const Map<Key_T, Mapped_T>& map1, const Map<Key_T, Mapped_T>& map2) {
+    return !(map1 == map2);
+  }
+
+  template <typename Key_T, typename Mapped_T>
+  bool operator<(const Map<Key_T, Mapped_T>& map1, const Map<Key_T, Mapped_T>& map2) {
+    auto it1 = map1.begin();
+    auto it2 = map2.begin();
+
+    // Good thing Skip Lists are ordered otherwise this wouldn't work as fast
+    // Although I guess in BSTs one could just do an inorder traversal
+    // Yeah that'd be cool
+    // I think if I used a RB tree this would be the exact same code
+    while (it1 != map1.end() && it2 != map2.end()) {
+      if (*it1 < *it2) {
+        return true;
+      }
+      it1++; it2++;
+    }
+
+    return map1.size() < map2.size();
+  }
+
 }
 
+// Purely for debugging purposes, don't leave this here
+template class cs540::Map<std::string, std::string>;
 
 #endif /* _MAP_H_ */
