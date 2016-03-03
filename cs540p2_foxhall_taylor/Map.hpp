@@ -429,7 +429,7 @@ namespace cs540 {
       }
     }
 
-    if (it->next[0]->data->first == key) {
+    if (it->next[0] != _sentinel && it->next[0]->data->first == key) {
       return Iterator(it->next[0]);
     }
 
