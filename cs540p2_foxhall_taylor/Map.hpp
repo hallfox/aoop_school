@@ -63,7 +63,7 @@ namespace cs540 {
     // Skip list internals here
     struct SkipNode {
       // Can't assume we have these since we can't assume Mapped and Key have them
-      SkipNode();
+      SkipNode() {}
       SkipNode& operator=(const SkipNode&) = delete;
 
       SkipNode(const SkipNode&) = default;
