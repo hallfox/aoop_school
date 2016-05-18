@@ -215,9 +215,11 @@ main(int argc, char **argv) {
      std::setbase(8), 0123,
      std::setbase(10), 999);
 
+    std::cout << "Sets" << std::endl;
     // Test std::setfill(), std::setprecision(), and std::setw().
     CS540_TEST("--1.234567899", "%", std::setw(13), std::setprecision(10), std::setfill('-'), 1.234567899);
 
+    std::cout << "Put money" << std::endl;
     // Test std::put_money().
     {
         std::stringstream ss;
@@ -227,6 +229,7 @@ main(int argc, char **argv) {
         assert(ss.str() == "$1.12, USD  1.12");
     }
     // Test std::put_time().
+    std::cout << "Put time" << std::endl;
     {
         std::stringstream ss;
         std::tm tm;

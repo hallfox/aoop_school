@@ -44,7 +44,10 @@ int main() {
   std::cout << Interpolate(R"(\%%\%;\%%\%;)", "HOME", "SYSTEM") << std::endl;
 
   // Test manip
-  std::cout << Interpolate("Twenty is equal to %, and equal to %! %", 20, std::hex, 0x14, "GREAT!");
+  std::cout << Interpolate("Twenty is equal to %, and equal to %! %", 20, std::hex, 20, ffr(std::flush), "GREAT!", ffr(std::flush)) << std::endl;
+  std::cout << std::dec;
+  std::cout << Interpolate("Twenty is equal to %, and equal to %!%%", 20, std::setbase(16), 20, ffr(std::endl), "GREAT!") << std::endl;
+  std::cout << Interpolate("%", "std::flush\n", ffr(std::flush));
 
   return 0;
 }

@@ -15,6 +15,7 @@ namespace cs540 {
 
   template <typename ...Ts> struct TypeSet;
   template <typename T, typename U> struct In;
+  template <typename ...Ts> struct Return;
 
   template <typename T, typename ...Ts>
   struct In<T, TypeSet<T, Ts...> > {
@@ -30,6 +31,10 @@ namespace cs540 {
   struct In<T, TypeSet<> > {
     static constexpr bool value = false;
   };
+
+  auto ffr(std::ostream &(*op)(std::ostream &)) {
+    return op;
+  }
 
   template <typename ...Ts>
   InterpStream<std::tuple<const Ts &...> > Interpolate(const std::string &format_string, const Ts &... args) {
@@ -47,21 +52,37 @@ namespace cs540 {
     template <std::size_t ...ls>
     std::ostream &process(std::ostream &, const std::index_sequence<ls...> &) const;
 
-    template <typename U, typename ...Us>
-    std::ostream &actually_process(std::ostream &, const U &, const Us &...) const;
     template <typename ...Us>
-    std::ostream &actually_process(std::ostream &os, decltype(std::hex), const Us &...);
-    template <typename U, typename ...Us,
-              typename std::enable_if<In<U, TypeSet<
-                                              return_type(std::resetiosflags, std::ios_base::fmtflags),
-                                              return_type(std::setiosflags, std::ios_base::fmtflags),
-                                              return_type(std::setbase, int),
-                                              return_type(std::setprecision, int),
-                                              return_type(std::setw, int)> >::value >::type* = nullptr>
-    std::ostream &actually_process(std::ostream &os, const U &op, const Us &...rest) {
+    std::ostream &actually_process(std::ostream &, std::ios_base &(*)(std::ios_base &), const Us &...) const;
+    template <typename ...Us>
+    std::ostream &actually_process(std::ostream &, std::ostream &(*)(std::ostream &), const Us &...) const;
+
+    template <typename U, typename ...Us>
+    typename std::enable_if<In<U, TypeSet<
+                                    return_type(std::setfill<char>, char),
+                                    return_type(std::resetiosflags, std::ios_base::fmtflags),
+                                    return_type(std::setiosflags, std::ios_base::fmtflags),
+                                    return_type(std::setbase, int),
+                                    return_type(std::setprecision, int),
+                                    return_type(std::setw, int)> >::value, std::ostream &>::type
+    actually_process(std::ostream &os, const U &op, const Us &...rest) const {
       os << op;
-      actually_process(rest...);
+      return actually_process(os, rest...);
     }
+
+    template <typename U, typename ...Us>
+    typename std::enable_if<!In<U, TypeSet<
+                                     return_type(std::setfill<char>, char),
+                                     // std::result_of<decltype(std::put_money<int>)&(int, bool)>::type,
+                                     // std::result_of<decltype(std::put_time<const char *>)&(const std::tm *, const char *)>::type,
+                                     // std::result_of<decltype(std::quoted<const char *>)&(const char *)>::type,
+                                     return_type(std::resetiosflags, std::ios_base::fmtflags),
+                                     return_type(std::setiosflags, std::ios_base::fmtflags),
+                                     return_type(std::setbase, int),
+                                     return_type(std::setprecision, int),
+                                     return_type(std::setw, int)> >::value, std::ostream &>::type
+    actually_process(std::ostream &, const U &, const Us &...) const;
+
     // Base case
     std::ostream &actually_process(std::ostream &os) const;
 
@@ -100,22 +121,26 @@ namespace cs540 {
 
   template <typename T>
   template <typename ...Us>
-  std::ostream &InterpStream<T>::actually_process(std::ostream &os, decltype(std::hex) op, const Us &...rest) {
+  std::ostream &InterpStream<T>::actually_process(std::ostream &os, std::ios_base &(*op)(std::ios_base &), const Us &...rest) const {
     os << op;
     return actually_process(os, rest...);
   }
 
-
   template <typename T>
-  template <typename U, typename ...Us>
-  std::ostream &InterpStream<T>::actually_process(std::ostream &os, const U &t, const Us &...rest) const {
+  template <typename ...Us>
+  std::ostream &InterpStream<T>::actually_process(std::ostream &os, std::ostream &(*op)(std::ostream &), const Us &...rest) const {
+    if (op == ffr(std::flush)) {
+      os << op;
+      return actually_process(os, rest...);
+    }
+
     auto beg = w_head_;
     for (; w_head_< format_.size(); w_head_++) {
       if (format_[w_head_] == '%') {
         // If % detected
         if (w_head_ == 0 || format_[w_head_-1] != '\\') {
           // If it's not escaped
-          os << format_.substr(beg, w_head_-beg) << t;
+          os << format_.substr(beg, w_head_-beg) << op;
           w_head_++;
           return actually_process(os, rest...);
         } else {
@@ -126,6 +151,40 @@ namespace cs540 {
       }
     }
     throw WrongNumberOfArgs("Too many args");
+    return os;
+  }
+
+
+  template <typename T>
+  template <typename U, typename ...Us>
+  typename std::enable_if<!In<U, TypeSet<
+                                   return_type(std::setfill<char>, char),
+                                   return_type(std::resetiosflags, std::ios_base::fmtflags),
+                                   return_type(std::setiosflags, std::ios_base::fmtflags),
+                                   return_type(std::setbase, int),
+                                   return_type(std::setprecision, int),
+                                   return_type(std::setw, int)> >::value, std::ostream &>::type
+  InterpStream<T>::actually_process(std::ostream &os, const U &t, const Us &...rest) const {
+    auto beg = w_head_;
+    for (; w_head_< format_.size(); w_head_++) {
+      if (format_[w_head_] == '%') {
+        // If % detected
+        if (w_head_ == 0 || format_[w_head_-1] != '\\') {
+          // If it's not escaped
+          auto s = format_.substr(beg, w_head_-beg);
+          if (s != "") os << format_.substr(beg, w_head_-beg);
+          os << t;
+          w_head_++;
+          return actually_process(os, rest...);
+        } else {
+          // Escaped percent
+          os << format_.substr(beg, w_head_-beg-1) << '%';
+          beg = w_head_ + 1;
+        }
+      }
+    }
+    throw WrongNumberOfArgs("Too many args");
+    return os;
   }
 
   template <typename T>
@@ -144,6 +203,7 @@ namespace cs540 {
     }
     return os << format_.substr(beg, w_head_-beg);
   }
+
 
 
 }
